@@ -547,8 +547,9 @@ namespace BpmApiClient.Tests
         [Fact]
         public async Task UploadFile_WithValidArgs_ShouldSendMultipartAndReturnResult()
         {
-            // Arrange
-            HttpRequestMessage capturedRequest = null;
+            // Arrange：在 handler 内部提取断言所需数据，避免 HttpRequestMessage Dispose 后访问
+            string capturedQuery = null;
+            string capturedContentType = null;
             var httpClient = CreateSequentialHttpClient(
                 _ => new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                 {
@@ -556,7 +557,8 @@ namespace BpmApiClient.Tests
                 },
                 req =>
                 {
-                    capturedRequest = req;
+                    capturedQuery = req.RequestUri?.Query;
+                    capturedContentType = req.Content?.Headers?.ContentType?.MediaType;
                     return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                     {
                         Content = new StringContent("[{\"fileId\":\"abc\"}]", Encoding.UTF8, "application/json")
@@ -574,13 +576,12 @@ namespace BpmApiClient.Tests
             var result = await client.UploadFileAsync("wf_001", null, "zhangsan", 0, attachments);
 
             // Assert：请求已发出且响应被正确解析
-            Assert.NotNull(capturedRequest);
             Assert.NotNull(result);
             Assert.Single(result);
             // 请求 URL 应包含令牌 query string
-            Assert.Contains("eco-oauth2-token=", capturedRequest.RequestUri.Query);
+            Assert.Contains("eco-oauth2-token=", capturedQuery);
             // 内容类型应为 multipart
-            Assert.Contains("multipart", capturedRequest.Content.Headers.ContentType.MediaType);
+            Assert.Contains("multipart", capturedContentType);
         }
 
         /// <summary>
