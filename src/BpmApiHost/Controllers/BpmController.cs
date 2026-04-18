@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using BpmApiClient;
 using BpmApiClient.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BpmApiHost.Controllers
@@ -87,15 +89,29 @@ namespace BpmApiHost.Controllers
             [FromQuery] string user,
             [FromQuery] int increment = 0)
         {
-            // 从 multipart form 中读取文件
-            var attachments = new Dictionary<string, (Stream, string)>();
-            foreach (var file in Request.Form.Files)
-            {
-                attachments[file.Name] = (file.OpenReadStream(), file.FileName);
-            }
+            // 先校验参数，再打开流，避免已打开的流因参数校验失败而泄漏
+            if (string.IsNullOrWhiteSpace(wfId) && string.IsNullOrWhiteSpace(taskId))
+                return BadRequest("wfId 和 taskId 至少填一个。");
 
-            var result = await _bpmClient.UploadFileAsync(wfId, taskId, user, increment, attachments);
-            return Ok(result);
+            if (!Request.Form.Files.Any())
+                return BadRequest("至少需要上传一个文件。");
+
+            var attachments = new Dictionary<string, (Stream, string)>();
+            try
+            {
+                foreach (var file in Request.Form.Files)
+                {
+                    attachments[file.Name] = (file.OpenReadStream(), file.FileName);
+                }
+
+                var result = await _bpmClient.UploadFileAsync(wfId, taskId, user, increment, attachments);
+                return Ok(result);
+            }
+            finally
+            {
+                foreach (var kv in attachments.Values)
+                    kv.Item1?.Dispose();
+            }
         }
 
         // ============================================================
@@ -139,6 +155,7 @@ namespace BpmApiHost.Controllers
         /// 将流程实例撤回到指定环节。
         /// POST /api/bpm/maintain/workflow-backoff?wfId=&amp;opUser=&amp;taskId=
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/workflow-backoff")]
         public async Task<IActionResult> WorkflowBackoff([FromBody] WorkflowBackoffRequest request)
         {
@@ -154,6 +171,7 @@ namespace BpmApiHost.Controllers
         /// 取消一个进行中的流程实例。
         /// POST /api/bpm/maintain/cancelwf
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/cancelwf")]
         public async Task<IActionResult> CancelWf([FromBody] CancelWfRequest request)
         {
@@ -487,6 +505,7 @@ namespace BpmApiHost.Controllers
         /// 强制变更流程实例状态（运维用途）。
         /// POST /api/bpm/maintain/change-wfstatus
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/change-wfstatus")]
         public async Task<IActionResult> ChangeWfStatus([FromBody] ChangeWfStatusRequest request)
         {
@@ -502,6 +521,7 @@ namespace BpmApiHost.Controllers
         /// 强制变更指定人员环节的办理状态（运维用途）。
         /// POST /api/bpm/maintain/change-taskstatus
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/change-taskstatus")]
         public async Task<IActionResult> ChangeTaskStatus([FromBody] ChangeTaskStatusRequest request)
         {
@@ -517,6 +537,7 @@ namespace BpmApiHost.Controllers
         /// 强制变更整个层级节点的状态（运维用途）。
         /// POST /api/bpm/maintain/change-levelstatus
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/change-levelstatus")]
         public async Task<IActionResult> ChangeLevelStatus([FromBody] ChangeLevelStatusRequest request)
         {
@@ -532,6 +553,7 @@ namespace BpmApiHost.Controllers
         /// 变更指定环节的办理人（运维用途）。
         /// POST /api/bpm/maintain/task-change-assignee
         /// </summary>
+        [Authorize]
         [HttpPost("maintain/task-change-assignee")]
         public async Task<IActionResult> TaskChangeAssignee([FromBody] TaskChangeAssigneeRequest request)
         {

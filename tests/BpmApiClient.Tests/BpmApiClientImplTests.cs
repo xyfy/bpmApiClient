@@ -169,7 +169,6 @@ namespace BpmApiClient.Tests
         public async Task InitProcess_WithValidRequest_ShouldReturnWfId()
         {
             // Arrange：模拟 BPM 返回启动流程成功响应
-            var tokenClient = CreateHttpClient("test_token");
             int callIndex = 0;
             var handler = new MockHttpMessageHandler(req =>
             {

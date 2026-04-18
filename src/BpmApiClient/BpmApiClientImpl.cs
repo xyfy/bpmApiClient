@@ -27,11 +27,18 @@ namespace BpmApiClient
         /// <summary>客户端配置（BaseUrl / AppId / Secret / Timeout）。</summary>
         private readonly BpmApiClientOptions _options;
 
-        /// <summary>缓存的访问令牌。</summary>
-        private string _cachedToken;
+        /// <summary>
+        /// 不可变令牌状态，用 volatile 保证跨线程可见性（避免 32 位运行时 DateTime 撕裂）。
+        /// </summary>
+        private sealed class TokenState
+        {
+            public readonly string Token;
+            public readonly DateTime ExpiresAt;
+            public TokenState(string token, DateTime expiresAt) { Token = token; ExpiresAt = expiresAt; }
+        }
 
-        /// <summary>令牌过期时间（提前 60 秒刷新，避免边界问题）。</summary>
-        private DateTime _tokenExpiresAt = DateTime.MinValue;
+        /// <summary>当前缓存的令牌状态（null 表示尚未获取）。</summary>
+        private volatile TokenState _tokenState;
 
         /// <summary>令牌刷新锁，防止并发重复刷新。</summary>
         private readonly SemaphoreSlim _tokenLock = new SemaphoreSlim(1, 1);
@@ -69,17 +76,19 @@ namespace BpmApiClient
         /// </summary>
         public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default)
         {
-            // 快速路径：令牌未过期，直接返回缓存值
-            if (_cachedToken != null && DateTime.UtcNow < _tokenExpiresAt)
-                return _cachedToken;
+            // 快速路径：读取 volatile 引用后本地检查，避免 DateTime 撕裂
+            var current = _tokenState;
+            if (current != null && DateTime.UtcNow < current.ExpiresAt)
+                return current.Token;
 
             // 慢速路径：加锁刷新，避免并发多次请求
             await _tokenLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 // 双重检查，防止等锁期间已被其他线程刷新
-                if (_cachedToken != null && DateTime.UtcNow < _tokenExpiresAt)
-                    return _cachedToken;
+                current = _tokenState;
+                if (current != null && DateTime.UtcNow < current.ExpiresAt)
+                    return current.Token;
 
                 // 调用令牌接口：GET /oauth2/access-token?appid=&secret=
                 var url = $"oauth2/access-token?appid={Uri.EscapeDataString(_options.AppId)}" +
@@ -90,25 +99,31 @@ namespace BpmApiClient
                     resp.EnsureSuccessStatusCode();
                     var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+                    string newToken;
+                    DateTime newExpiresAt;
+
                     // 规范返回的是 JWT 字符串（直接），部分版本包装在 JSON 内
                     // 若响应以 '{' 开头则尝试反序列化为 TokenResult
                     if (body.TrimStart().StartsWith("{", StringComparison.Ordinal))
                     {
                         var tokenResult = JsonConvert.DeserializeObject<TokenResult>(body);
-                        _cachedToken = tokenResult?.AccessToken ?? body;
-                        // expiresIn 单位：秒；提前 60 秒刷新
+                        newToken = tokenResult?.AccessToken ?? body;
+                        // expiresIn 单位：秒；提前 60 秒刷新，并保证不为负数
                         int expiresIn = tokenResult?.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
-                        _tokenExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn - 60);
+                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 0));
                     }
                     else
                     {
                         // 直接是 JWT 字符串
-                        _cachedToken = body.Trim();
-                        _tokenExpiresAt = DateTime.UtcNow.AddMinutes(29); // 保守 29 分钟
+                        newToken = body.Trim();
+                        newExpiresAt = DateTime.UtcNow.AddMinutes(29); // 保守 29 分钟
                     }
+
+                    // 原子发布新状态（volatile write）
+                    _tokenState = new TokenState(newToken, newExpiresAt);
                 }
 
-                return _cachedToken;
+                return _tokenState.Token;
             }
             finally
             {

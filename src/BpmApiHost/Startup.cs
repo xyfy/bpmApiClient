@@ -57,6 +57,9 @@ namespace BpmApiHost
 
             // 注册 MVC（兼容 ASP.NET Core 2.2）
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            // 注册授权服务（运维接口受保护，部署时应配合认证中间件使用）
+            services.AddAuthorization();
         }
 
         /// <summary>
@@ -84,8 +87,14 @@ namespace BpmApiHost
                 });
             }
 
-            // 强制 HTTPS 重定向
-            app.UseHttpsRedirection();
+            // HTTPS 重定向仅在非开发环境启用（开发环境仅配置了 http，重定向会导致接口不可访问）
+            if (!env.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
+
+            // 启用授权中间件
+            app.UseAuthorization();
 
             // 启用 MVC 路由
             app.UseMvc();

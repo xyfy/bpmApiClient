@@ -25,13 +25,17 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 还原 NuGet 依赖
+      # 还原 NuGet 依赖（只还原类库和测试项目，排除 netcoreapp2.2 的 Host 项目）
       - name: 还原依赖
-        run: dotnet restore bpmApiClient.sln
+        run: |
+          dotnet restore src/BpmApiClient/BpmApiClient.csproj
+          dotnet restore tests/BpmApiClient.Tests/BpmApiClient.Tests.csproj
 
-      # 构建整个解决方案（Release 模式）
+      # 构建（Release 模式，只构建兼容 .NET 8 SDK 的项目）
       - name: 构建解决方案
-        run: dotnet build bpmApiClient.sln --configuration Release --no-restore
+        run: |
+          dotnet build src/BpmApiClient/BpmApiClient.csproj --configuration Release --no-restore
+          dotnet build tests/BpmApiClient.Tests/BpmApiClient.Tests.csproj --configuration Release --no-restore
 
       # 运行单元测试并生成测试报告
       - name: 运行单元测试
