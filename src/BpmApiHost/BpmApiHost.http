@@ -1,8 +1,11 @@
 @BpmApiHost_HostAddress = http://localhost:5162
+# 受 [Authorize] 保护的端点需要 JWT；将下方变量替换为实际令牌，或通过其他受信渠道获取。
+@BpmToken = <your-jwt-token-here>
 
-### 1.3 获取令牌
+### 1.3 获取令牌（需要 JWT 身份验证）
 GET {{BpmApiHost_HostAddress}}/api/bpm/token
 Accept: application/json
+Authorization: Bearer {{BpmToken}}
 
 ### 2.2 启动流程
 POST {{BpmApiHost_HostAddress}}/api/bpm/process/init
@@ -49,9 +52,10 @@ Accept: application/json
 GET {{BpmApiHost_HostAddress}}/api/bpm/process/apply?taskId=1316710554985246722&asnUser=zhangsan
 Accept: application/json
 
-### 2.7 流程撤回
+### 2.7 流程撤回（需要 JWT 身份验证）
 POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/workflow-backoff
 Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
 
 {
   "wfId": "1320204951691436033",
@@ -59,9 +63,10 @@ Content-Type: application/json
   "taskId": "1316710554985246722"
 }
 
-### 2.8 流程取消
+### 2.8 流程取消（需要 JWT 身份验证）
 POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/cancelwf
 Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
 
 {
   "wfId": "1320204951691436033",
@@ -109,9 +114,10 @@ Accept: application/json
 GET {{BpmApiHost_HostAddress}}/api/bpm/trivial/groups
 Accept: application/json
 
-### 4.1 变更流程状态（运维）
+### 4.1 变更流程状态（运维，需要 JWT 身份验证）
 POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/change-wfstatus
 Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
 
 {
   "wfId": "1316710461716508673",

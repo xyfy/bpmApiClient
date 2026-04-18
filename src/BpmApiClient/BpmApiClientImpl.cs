@@ -28,8 +28,22 @@ namespace BpmApiClient
         /// </summary>
         private readonly Func<HttpClient> _getHttpClient;
 
-        /// <summary>获取当前 HTTP 调用应使用的 HttpClient。</summary>
-        private HttpClient HttpClient => _getHttpClient();
+        /// <summary>获取当前 HTTP 调用应使用的 HttpClient，并校验 BaseAddress 已配置。</summary>
+        private HttpClient HttpClient
+        {
+            get
+            {
+                var client = _getHttpClient();
+                if (client == null)
+                    throw new InvalidOperationException(
+                        "HttpClient 工厂返回了 null，请检查 IHttpClientFactory 或工厂委托配置。");
+                if (client.BaseAddress == null)
+                    throw new InvalidOperationException(
+                        "HttpClient.BaseAddress 未配置。使用 Func<HttpClient> 构造函数时，" +
+                        "请在 AddHttpClient 配置阶段设置 BaseAddress（例如 c.BaseAddress = new Uri(baseUrl)）。");
+                return client;
+            }
+        }
 
         /// <summary>客户端配置（BaseUrl / AppId / Secret / Timeout）。</summary>
         private readonly BpmApiClientOptions _options;
