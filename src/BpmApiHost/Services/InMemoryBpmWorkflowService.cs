@@ -33,7 +33,7 @@ namespace BpmApiHost.Services
             {
                 TaskId = Guid.NewGuid().ToString("N"),
                 ProcessInstanceId = processInstanceId,
-                TaskName = "审批",
+                TaskName = "Approval",
                 Assignee = request.Initiator,
                 Status = "Pending",
                 CreatedAt = now
