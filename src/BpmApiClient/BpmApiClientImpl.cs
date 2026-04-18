@@ -108,9 +108,9 @@ namespace BpmApiClient
                     {
                         var tokenResult = JsonConvert.DeserializeObject<TokenResult>(body);
                         newToken = tokenResult?.AccessToken ?? body;
-                        // expiresIn 单位：秒；提前 60 秒刷新，并保证不为负数
+                        // expiresIn 单位：秒；提前 60 秒刷新，并保证至少还有 30 秒有效期
                         int expiresIn = tokenResult?.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
-                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 0));
+                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 30));
                     }
                     else
                     {
