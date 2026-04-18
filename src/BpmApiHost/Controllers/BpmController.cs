@@ -103,7 +103,7 @@ namespace BpmApiHost.Controllers
             // 缺少 boundary 参数时 Request.Form 解析会抛出异常，提前返回 415
             var boundaryParam = mediaType.Parameters
                 .FirstOrDefault(p => p.Name.Equals("boundary", StringComparison.OrdinalIgnoreCase));
-            if (boundaryParam == null || string.IsNullOrEmpty(boundaryParam.Value))
+            if (boundaryParam == null || string.IsNullOrWhiteSpace(boundaryParam.Value))
                 return StatusCode(415, "multipart/form-data 请求缺少 boundary 参数。");
 
             // 先校验参数，再打开流，避免已打开的流因参数校验失败而泄漏
