@@ -48,9 +48,16 @@
     "AppId": "your-app-id",
     "Secret": "your-secret",
     "Timeout": "00:00:30"
+  },
+  "Auth": {
+    "Authority": "https://your-identity-server",
+    "Audience": "bpm-api"
   }
 }
 ```
+
+> **注意：** `Auth:Authority` 与 `Auth:Audience` 用于 Host 侧 JWT Bearer 认证。  
+> `GET /api/bpm/token` 及所有 `maintain/*` 运维端点均受 `[Authorize]` 保护，调用时需在请求头携带 `Authorization: Bearer <JWT>`，否则返回 401。
 
 ### 2.2 Startup.cs 注册服务
 
@@ -104,9 +111,10 @@ public class MyService
 | 规范章节 | 1.3 |
 | BPM 原始接口 | `GET /oauth2/access-token?appid=&secret=` |
 | 客户端方法 | `Task<string> GetAccessTokenAsync(CancellationToken)` |
-| Host 端点 | `GET /api/bpm/token` |
+| Host 端点 | `GET /api/bpm/token`（需携带 `Authorization: Bearer <JWT>`）|
 
-**说明：** 令牌有效期约 30 分钟，客户端自动缓存，通常无需显式调用此方法。
+**说明：** 令牌有效期约 30 分钟，客户端自动缓存，通常无需显式调用此方法。  
+该 Host 端点受 `[Authorize]` 保护，仅供已认证的内部服务调用；生产环境如无需对外暴露可考虑禁用。
 
 ---
 

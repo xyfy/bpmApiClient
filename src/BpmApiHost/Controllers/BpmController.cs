@@ -166,7 +166,8 @@ namespace BpmApiHost.Controllers
 
         /// <summary>
         /// 将流程实例撤回到指定环节。
-        /// POST /api/bpm/maintain/workflow-backoff?wfId=&amp;opUser=&amp;taskId=
+        /// POST /api/bpm/maintain/workflow-backoff，请求体为 JSON（WorkflowBackoffRequest）。
+        /// 需携带 Authorization: Bearer &lt;token&gt;。
         /// </summary>
         [Authorize]
         [HttpPost("maintain/workflow-backoff")]
