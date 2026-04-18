@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using BpmApiClient;
 using BpmApiClient.Models;
@@ -89,10 +90,11 @@ namespace BpmApiHost.Controllers
             [FromQuery] string user,
             [FromQuery] int increment = 0)
         {
-            // 检查 Content-Type 是否为 multipart/form-data，避免框架解析表单时抛出 500
-            // HasFormContentType 对 application/x-www-form-urlencoded 也返回 true，故显式校验 multipart/
-            if (Request.ContentType == null ||
-                !Request.ContentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
+            // 严格检查 Content-Type 必须为 multipart/form-data，避免：
+            // 1. application/x-www-form-urlencoded 被 HasFormContentType 误放行
+            // 2. multipart/mixed 等其他 multipart 子类型触发 Request.Form 解析异常
+            if (!MediaTypeHeaderValue.TryParse(Request.ContentType, out var mediaType) ||
+                !mediaType.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase))
                 return StatusCode(415, "Content-Type 必须为 multipart/form-data。");
 
             // 先校验参数，再打开流，避免已打开的流因参数校验失败而泄漏

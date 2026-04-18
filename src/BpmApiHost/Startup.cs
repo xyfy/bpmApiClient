@@ -39,7 +39,18 @@ namespace BpmApiHost
             var bpmOptions = new BpmApiClientOptions();
             _configuration.GetSection("BpmApiClient").Bind(bpmOptions);
 
-            // 注册 HttpClient，通过 IHttpClientFactory 管理 HttpMessageHandler 生命周期
+            // 提前校验必填配置项，启动时即给出清晰错误信息（早于 BpmApiClientImpl 构造函数的校验）
+            if (string.IsNullOrWhiteSpace(bpmOptions.BaseUrl))
+                throw new InvalidOperationException(
+                    "配置项 BpmApiClient:BaseUrl 不能为空，请在 appsettings.json 中填写 BPM 服务地址。");
+            if (string.IsNullOrWhiteSpace(bpmOptions.AppId))
+                throw new InvalidOperationException(
+                    "配置项 BpmApiClient:AppId 不能为空，请在 appsettings.json 中填写应用 ID。");
+            if (string.IsNullOrWhiteSpace(bpmOptions.Secret))
+                throw new InvalidOperationException(
+                    "配置项 BpmApiClient:Secret 不能为空，请在 appsettings.json 中填写应用密钥。");
+
+            // 注册命名 HttpClient，通过 IHttpClientFactory 管理 HttpMessageHandler 生命周期
             // （防止长寿命 HttpClient 导致的 DNS 过期问题）
             services.AddHttpClient("bpm", client =>
             {
@@ -50,12 +61,13 @@ namespace BpmApiHost
             // 注册 BpmApiClientOptions 配置
             services.AddSingleton(bpmOptions);
 
-            // 注册 IBpmApiClient 的 HTTP 实现（单例，内含令牌缓存，线程安全）
-            // 通过 IHttpClientFactory 创建底层 HttpClient，确保 handler 生命周期由框架管理
+            // 注册 IBpmApiClient 的 HTTP 实现（单例，内含令牌缓存，线程安全）。
+            // 通过 Func<HttpClient> 委托将 IHttpClientFactory.CreateClient("bpm") 传入，
+            // 每次 HTTP 调用都会从工厂获取 HttpClient，确保 handler 随框架生命周期轮换。
             services.AddSingleton<IBpmApiClient>(sp =>
             {
                 var factory = sp.GetRequiredService<IHttpClientFactory>();
-                return new BpmApiClientImpl(factory.CreateClient("bpm"), bpmOptions);
+                return new BpmApiClientImpl(() => factory.CreateClient("bpm"), bpmOptions);
             });
 
             // 注册 MVC（兼容 ASP.NET Core 2.2）

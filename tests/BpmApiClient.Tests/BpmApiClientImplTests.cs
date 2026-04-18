@@ -419,7 +419,7 @@ namespace BpmApiClient.Tests
         {
             var options = new BpmApiClientOptions { BaseUrl = "http://test/", AppId = "id", Secret = "sec" };
 
-            Assert.Throws<ArgumentNullException>(() => new BpmApiClientImpl(null, options));
+            Assert.Throws<ArgumentNullException>(() => new BpmApiClientImpl((HttpClient)null, options));
         }
 
         // -------------------------------------------------------

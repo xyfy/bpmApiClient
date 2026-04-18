@@ -21,8 +21,15 @@ namespace BpmApiClient
         // 私有字段
         // -------------------------------------------------------
 
-        /// <summary>共享 HttpClient 实例（线程安全，由 DI 注入）。</summary>
-        private readonly HttpClient _httpClient;
+        /// <summary>
+        /// 返回用于当前 HTTP 调用的 HttpClient 的工厂委托。
+        /// 使用 IHttpClientFactory 时每次调用都会从工厂获取，确保 handler 随框架周期轮换；
+        /// 直接传入 HttpClient 时始终返回同一实例（兼容测试与简单场景）。
+        /// </summary>
+        private readonly Func<HttpClient> _getHttpClient;
+
+        /// <summary>获取当前 HTTP 调用应使用的 HttpClient。</summary>
+        private HttpClient HttpClient => _getHttpClient();
 
         /// <summary>客户端配置（BaseUrl / AppId / Secret / Timeout）。</summary>
         private readonly BpmApiClientOptions _options;
@@ -48,28 +55,51 @@ namespace BpmApiClient
         // -------------------------------------------------------
 
         /// <summary>
-        /// 初始化 BPM API 客户端。
+        /// 初始化 BPM API 客户端（直接注入 HttpClient，适用于单元测试及不需要 handler 轮换的场景）。
         /// </summary>
         /// <param name="httpClient">外部注入的 HttpClient，BaseAddress 将被设置为 options.BaseUrl。</param>
         /// <param name="options">BPM 服务地址及认证配置。</param>
         public BpmApiClientImpl(HttpClient httpClient, BpmApiClientOptions options)
         {
-            // 检查必要参数
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            if (httpClient == null) throw new ArgumentNullException(nameof(httpClient));
             _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
                 throw new ArgumentException("BpmApiClientOptions.BaseUrl 不能为空。", nameof(options));
 
-            if (string.IsNullOrWhiteSpace(_options.AppId))
-                throw new ArgumentException("BpmApiClientOptions.AppId 不能为空。", nameof(options));
-
-            if (string.IsNullOrWhiteSpace(_options.Secret))
-                throw new ArgumentException("BpmApiClientOptions.Secret 不能为空。", nameof(options));
+            ValidateCredentialOptions(_options);
 
             // 设置 HttpClient 基础属性
-            _httpClient.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
-            _httpClient.Timeout = _options.Timeout;
+            httpClient.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+            httpClient.Timeout = _options.Timeout;
+
+            _getHttpClient = () => httpClient;
+        }
+
+        /// <summary>
+        /// 初始化 BPM API 客户端（通过工厂委托获取 HttpClient，适用于生产环境）。
+        /// 每次 HTTP 调用都会调用 <paramref name="httpClientFactory"/> 获取 HttpClient，
+        /// 结合 IHttpClientFactory.CreateClient() 可实现 handler 定期轮换，避免 DNS 缓存过期问题。
+        /// HttpClient 的 BaseAddress / Timeout 应在 AddHttpClient 配置阶段设置，此构造函数不再重复设置。
+        /// </summary>
+        /// <param name="httpClientFactory">每次调用时返回已配置好的 HttpClient 的委托。</param>
+        /// <param name="options">BPM 服务认证配置（AppId / Secret 必填；BaseUrl 由 HttpClient 配置提供）。</param>
+        public BpmApiClientImpl(Func<HttpClient> httpClientFactory, BpmApiClientOptions options)
+        {
+            _getHttpClient = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+
+            ValidateCredentialOptions(_options);
+        }
+
+        /// <summary>校验 AppId / Secret 必填字段，两个构造函数共用。</summary>
+        private static void ValidateCredentialOptions(BpmApiClientOptions options)
+        {
+            if (string.IsNullOrWhiteSpace(options.AppId))
+                throw new ArgumentException("BpmApiClientOptions.AppId 不能为空。", "options");
+
+            if (string.IsNullOrWhiteSpace(options.Secret))
+                throw new ArgumentException("BpmApiClientOptions.Secret 不能为空。", "options");
         }
 
         // ============================================================
@@ -100,7 +130,7 @@ namespace BpmApiClient
                 var url = $"oauth2/access-token?appid={Uri.EscapeDataString(_options.AppId)}" +
                           $"&secret={Uri.EscapeDataString(_options.Secret)}";
 
-                using (var resp = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
+                using (var resp = await HttpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
                 {
                     resp.EnsureSuccessStatusCode();
                     var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -125,6 +155,9 @@ namespace BpmApiClient
                     {
                         // 直接是 JWT 字符串
                         newToken = body.Trim();
+                        if (string.IsNullOrWhiteSpace(newToken))
+                            throw new InvalidOperationException(
+                                "令牌接口返回了成功响应，但响应体为空，无法获取访问令牌。");
                         newExpiresAt = DateTime.UtcNow.AddMinutes(29); // 保守 29 分钟
                     }
 
@@ -194,7 +227,7 @@ namespace BpmApiClient
         {
             // wfId 和 taskId 至少需要一个
             if (string.IsNullOrWhiteSpace(wfId) && string.IsNullOrWhiteSpace(taskId))
-                throw new ArgumentException("wfId 和 taskId 至少填一个。");
+                throw new ArgumentException("wfId 和 taskId 至少填一个。", nameof(wfId));
             if (attachments == null || attachments.Count == 0)
                 throw new ArgumentException("attachments 不能为空。", nameof(attachments));
 
@@ -222,7 +255,7 @@ namespace BpmApiClient
 
                 // 发送请求
                 var url = $"web-service/bpm/v95/formdata/upload-file?eco-oauth2-token={Uri.EscapeDataString(token)}";
-                using (var resp = await _httpClient.PostAsync(url, form, cancellationToken).ConfigureAwait(false))
+                using (var resp = await HttpClient.PostAsync(url, form, cancellationToken).ConfigureAwait(false))
                 {
                     resp.EnsureSuccessStatusCode();
                     var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -637,7 +670,7 @@ namespace BpmApiClient
                       $"&printDef={Uri.EscapeDataString(printDef)}";
 
             // 打印接口返回二进制文件，直接读取字节数组
-            using (var resp = await _httpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false))
+            using (var resp = await HttpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false))
             {
                 resp.EnsureSuccessStatusCode();
                 return await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
@@ -834,7 +867,7 @@ namespace BpmApiClient
                     request.Content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                using (var resp = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                using (var resp = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
                     resp.EnsureSuccessStatusCode();
                     var responseBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -848,7 +881,7 @@ namespace BpmApiClient
         /// </summary>
         private async Task<TResponse> GetResultAsync<TResponse>(string url, CancellationToken cancellationToken)
         {
-            using (var resp = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
+            using (var resp = await HttpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 resp.EnsureSuccessStatusCode();
                 var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -862,7 +895,7 @@ namespace BpmApiClient
         /// </summary>
         private async Task<TResponse> PostQueryStringAsync<TResponse>(string url, CancellationToken cancellationToken)
         {
-            using (var resp = await _httpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false))
+            using (var resp = await HttpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false))
             {
                 resp.EnsureSuccessStatusCode();
                 var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
