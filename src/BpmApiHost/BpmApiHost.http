@@ -1,6 +1,17 @@
 @BpmApiHost_HostAddress = http://localhost:5162
 
-GET {{BpmApiHost_HostAddress}}/weatherforecast/
-Accept: application/json
+### 启动流程
+POST {{BpmApiHost_HostAddress}}/api/bpm/process/start
+Content-Type: application/json
 
-###
+{
+  "processDefinitionKey": "expense-approval",
+  "initiator": "zhangsan",
+  "variables": {
+    "amount": 1200
+  }
+}
+
+### 查询待办
+GET {{BpmApiHost_HostAddress}}/api/bpm/tasks/pending?assignee=zhangsan
+Accept: application/json
