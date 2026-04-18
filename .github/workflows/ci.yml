@@ -10,6 +10,9 @@ jobs:
   build-and-test:
     name: 构建并运行单元测试
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
 
     steps:
       # 检出代码
