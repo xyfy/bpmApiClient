@@ -96,10 +96,10 @@ namespace BpmApiClient
         private static void ValidateCredentialOptions(BpmApiClientOptions options)
         {
             if (string.IsNullOrWhiteSpace(options.AppId))
-                throw new ArgumentException("BpmApiClientOptions.AppId 不能为空。", "options");
+                throw new ArgumentException("BpmApiClientOptions.AppId 不能为空。", nameof(options.AppId));
 
             if (string.IsNullOrWhiteSpace(options.Secret))
-                throw new ArgumentException("BpmApiClientOptions.Secret 不能为空。", "options");
+                throw new ArgumentException("BpmApiClientOptions.Secret 不能为空。", nameof(options.Secret));
         }
 
         // ============================================================

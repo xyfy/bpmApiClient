@@ -36,7 +36,10 @@ namespace BpmApiHost.Controllers
         /// <summary>
         /// 获取 BPM 访问令牌（AccessToken）。
         /// GET /api/bpm/token
+        /// 注意：此端点会将 BPM 后端令牌直接返回给调用方，仅供内部受信服务使用，
+        /// 生产环境请确保已启用身份验证以防止令牌泄露。
         /// </summary>
+        [Authorize]
         [HttpGet("token")]
         public async Task<IActionResult> GetToken()
         {

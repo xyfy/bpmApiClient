@@ -68,7 +68,7 @@ services.AddSingleton(bpmOptions);
 services.AddSingleton<IBpmApiClient>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    return new BpmApiClientImpl(factory.CreateClient("bpm"), bpmOptions);
+    return new BpmApiClientImpl(() => factory.CreateClient("bpm"), bpmOptions);
 });
 ```
 

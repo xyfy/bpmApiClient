@@ -534,7 +534,8 @@ namespace BpmApiClient.Models
     /// <summary>
     /// 获取/释放办理锁请求。
     /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
-    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// 在 BpmApiHost 中 TryLock/ReleaseLock 为 GET 端点，各字段通过 query string（<c>[FromQuery]</c>）接收，
+    /// 控制器内部再组装为此对象传入客户端。
     /// </summary>
     public class ProcessLockRequest
     {
