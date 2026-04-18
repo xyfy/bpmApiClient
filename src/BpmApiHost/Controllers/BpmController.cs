@@ -101,6 +101,8 @@ namespace BpmApiHost.Controllers
             {
                 foreach (var file in Request.Form.Files)
                 {
+                    if (attachments.ContainsKey(file.Name))
+                        return BadRequest($"存在重复的文件字段名：{file.Name}，请确保每个文件使用唯一的字段名。");
                     attachments[file.Name] = (file.OpenReadStream(), file.FileName);
                 }
 

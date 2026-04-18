@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using BpmApiClient;
 using BpmApiClient.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -58,6 +59,15 @@ namespace BpmApiHost
             // 注册 MVC（兼容 ASP.NET Core 2.2）
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
+            // 注册 JWT Bearer 认证（运维接口受 [Authorize] 保护，需配合认证中间件）
+            // 在 appsettings.json 中配置 Auth:Authority 和 Auth:Audience
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = _configuration["Auth:Authority"];
+                    options.Audience = _configuration["Auth:Audience"];
+                });
+
             // 注册授权服务（运维接口受保护，部署时应配合认证中间件使用）
             services.AddAuthorization();
         }
@@ -93,8 +103,8 @@ namespace BpmApiHost
                 app.UseHttpsRedirection();
             }
 
-            // 启用授权中间件
-            app.UseAuthorization();
+            // 启用认证中间件（在 MVC 之前，使 [Authorize] 能正确验证 JWT 令牌）
+            app.UseAuthentication();
 
             // 启用 MVC 路由
             app.UseMvc();

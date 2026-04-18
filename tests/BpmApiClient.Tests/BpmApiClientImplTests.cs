@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -495,5 +496,144 @@ namespace BpmApiClient.Tests
             Assert.Equal(500, error.Code);
             Assert.Equal("错误", error.Message);
         }
+        /// <summary>
+        /// 验证构造函数：AppId 为空时应抛出异常。
+        /// </summary>
+        [Fact]
+        public void Constructor_WithEmptyAppId_ShouldThrowArgumentException()
+        {
+            var httpClient = new HttpClient();
+            var options = new BpmApiClientOptions { BaseUrl = "http://test/", AppId = "", Secret = "sec" };
+
+            Assert.Throws<ArgumentException>(() => new BpmApiClientImpl(httpClient, options));
+        }
+
+        /// <summary>
+        /// 验证构造函数：Secret 为空时应抛出异常。
+        /// </summary>
+        [Fact]
+        public void Constructor_WithEmptySecret_ShouldThrowArgumentException()
+        {
+            var httpClient = new HttpClient();
+            var options = new BpmApiClientOptions { BaseUrl = "http://test/", AppId = "id", Secret = "" };
+
+            Assert.Throws<ArgumentException>(() => new BpmApiClientImpl(httpClient, options));
+        }
+
+        // -------------------------------------------------------
+        // 附件上传 (UploadFileAsync) 测试
+        // -------------------------------------------------------
+
+        /// <summary>
+        /// 创建多 handler 的 HttpClient，依次按 callIndex 返回不同响应。
+        /// </summary>
+        private static HttpClient CreateSequentialHttpClient(
+            params Func<HttpRequestMessage, HttpResponseMessage>[] handlers)
+        {
+            int index = 0;
+            var handler = new MockHttpMessageHandler(req =>
+            {
+                var i = index < handlers.Length ? index : handlers.Length - 1;
+                index++;
+                return handlers[i](req);
+            });
+            return new HttpClient(handler) { BaseAddress = new Uri("http://bpm-test-server/") };
+        }
+
+        /// <summary>
+        /// 验证 UploadFileAsync 正常路径：能将 wfId/taskId/user/increment 正确放入 multipart 字段，
+        /// 文件流和文件名也能正确传递，并返回服务端响应列表。
+        /// </summary>
+        [Fact]
+        public async Task UploadFile_WithValidArgs_ShouldSendMultipartAndReturnResult()
+        {
+            // Arrange
+            HttpRequestMessage capturedRequest = null;
+            var httpClient = CreateSequentialHttpClient(
+                _ => new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new StringContent("token_for_upload", Encoding.UTF8, "text/plain")
+                },
+                req =>
+                {
+                    capturedRequest = req;
+                    return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("[{\"fileId\":\"abc\"}]", Encoding.UTF8, "application/json")
+                    };
+                });
+            var client = CreateClient(httpClient);
+            var fileContent = Encoding.UTF8.GetBytes("hello");
+            var attachments = new Dictionary<string, (Stream, string)>
+            {
+                ["attach1"] = (new System.IO.MemoryStream(fileContent), "hello.txt")
+            };
+
+            // Act
+            var result = await client.UploadFileAsync("wf_001", null, "zhangsan", 0, attachments);
+
+            // Assert：请求已发出且响应被正确解析
+            Assert.NotNull(capturedRequest);
+            Assert.NotNull(result);
+            Assert.Single(result);
+            // 请求 URL 应包含令牌 query string
+            Assert.Contains("eco-oauth2-token=", capturedRequest.RequestUri.Query);
+            // 内容类型应为 multipart
+            Assert.Contains("multipart", capturedRequest.Content.Headers.ContentType.MediaType);
+        }
+
+        /// <summary>
+        /// 验证 UploadFileAsync 当服务端返回非 2xx 时抛出 HttpRequestException。
+        /// </summary>
+        [Fact]
+        public async Task UploadFile_WhenServerReturnsError_ShouldThrow()
+        {
+            var httpClient = CreateSequentialHttpClient(
+                _ => new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new StringContent("token_upload", Encoding.UTF8, "text/plain")
+                },
+                _ => new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError));
+            var client = CreateClient(httpClient);
+            var attachments = new Dictionary<string, (Stream, string)>
+            {
+                ["f"] = (new System.IO.MemoryStream(new byte[] { 1 }), "f.bin")
+            };
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                client.UploadFileAsync("wf_001", null, "user1", 0, attachments));
+        }
+
+        /// <summary>
+        /// 验证 UploadFileAsync 参数校验：wfId 和 taskId 都为空时应抛出 ArgumentException。
+        /// </summary>
+        [Fact]
+        public async Task UploadFile_WithBothWfIdAndTaskIdEmpty_ShouldThrowArgumentException()
+        {
+            var httpClient = CreateHttpClient("token_upload");
+            var client = CreateClient(httpClient);
+            var attachments = new Dictionary<string, (Stream, string)>
+            {
+                ["f"] = (new System.IO.MemoryStream(new byte[] { 1 }), "f.bin")
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                client.UploadFileAsync(null, null, "user1", 0, attachments));
+        }
+
+        /// <summary>
+        /// 验证 UploadFileAsync 参数校验：attachments 为空时应抛出 ArgumentException。
+        /// </summary>
+        [Fact]
+        public async Task UploadFile_WithEmptyAttachments_ShouldThrowArgumentException()
+        {
+            var httpClient = CreateHttpClient("token_upload");
+            var client = CreateClient(httpClient);
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                client.UploadFileAsync("wf_001", null, "user1", 0,
+                    new Dictionary<string, (Stream, string)>()));
+        }
+
     }
 }

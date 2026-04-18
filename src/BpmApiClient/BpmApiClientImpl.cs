@@ -61,6 +61,12 @@ namespace BpmApiClient
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
                 throw new ArgumentException("BpmApiClientOptions.BaseUrl 不能为空。", nameof(options));
 
+            if (string.IsNullOrWhiteSpace(_options.AppId))
+                throw new ArgumentException("BpmApiClientOptions.AppId 不能为空。", nameof(options));
+
+            if (string.IsNullOrWhiteSpace(_options.Secret))
+                throw new ArgumentException("BpmApiClientOptions.Secret 不能为空。", nameof(options));
+
             // 设置 HttpClient 基础属性
             _httpClient.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
             _httpClient.Timeout = _options.Timeout;
@@ -814,21 +820,23 @@ namespace BpmApiClient
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
 
             // 令牌放在 header 中（规范建议放 header 比放 url 更安全）
-            var request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Add("eco-oauth2-token", token);
-
-            // 序列化请求体为 JSON
-            if (body != null)
+            using (var request = new HttpRequestMessage(HttpMethod.Post, path))
             {
-                var json = JsonConvert.SerializeObject(body);
-                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-            }
+                request.Headers.Add("eco-oauth2-token", token);
 
-            using (var resp = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-            {
-                resp.EnsureSuccessStatusCode();
-                var responseBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return UnwrapResponse<TResponse>(responseBody);
+                // 序列化请求体为 JSON
+                if (body != null)
+                {
+                    var json = JsonConvert.SerializeObject(body);
+                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                }
+
+                using (var resp = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                {
+                    resp.EnsureSuccessStatusCode();
+                    var responseBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return UnwrapResponse<TResponse>(responseBody);
+                }
             }
         }
 
