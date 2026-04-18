@@ -564,9 +564,10 @@ namespace BpmApiClient.Tests
                 });
             var client = CreateClient(httpClient);
             var fileContent = Encoding.UTF8.GetBytes("hello");
+            using var ms = new MemoryStream(fileContent);
             var attachments = new Dictionary<string, (Stream, string)>
             {
-                ["attach1"] = (new System.IO.MemoryStream(fileContent), "hello.txt")
+                ["attach1"] = (ms, "hello.txt")
             };
 
             // Act
@@ -595,9 +596,10 @@ namespace BpmApiClient.Tests
                 },
                 _ => new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError));
             var client = CreateClient(httpClient);
+            using var ms1 = new MemoryStream(new byte[] { 1 });
             var attachments = new Dictionary<string, (Stream, string)>
             {
-                ["f"] = (new System.IO.MemoryStream(new byte[] { 1 }), "f.bin")
+                ["f"] = (ms1, "f.bin")
             };
 
             await Assert.ThrowsAsync<HttpRequestException>(() =>
@@ -612,9 +614,10 @@ namespace BpmApiClient.Tests
         {
             var httpClient = CreateHttpClient("token_upload");
             var client = CreateClient(httpClient);
+            using var ms2 = new MemoryStream(new byte[] { 1 });
             var attachments = new Dictionary<string, (Stream, string)>
             {
-                ["f"] = (new System.IO.MemoryStream(new byte[] { 1 }), "f.bin")
+                ["f"] = (ms2, "f.bin")
             };
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
