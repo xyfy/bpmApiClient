@@ -39,22 +39,24 @@ namespace BpmApiHost
             var bpmOptions = new BpmApiClientOptions();
             _configuration.GetSection("BpmApiClient").Bind(bpmOptions);
 
-            // 注册 HttpClient（单例），并绑定 BPM 服务基础地址
-            services.AddSingleton<HttpClient>(sp =>
+            // 注册 HttpClient，通过 IHttpClientFactory 管理 HttpMessageHandler 生命周期
+            // （防止长寿命 HttpClient 导致的 DNS 过期问题）
+            services.AddHttpClient("bpm", client =>
             {
-                var client = new HttpClient
-                {
-                    BaseAddress = new Uri(bpmOptions.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute),
-                    Timeout = bpmOptions.Timeout
-                };
-                return client;
+                client.BaseAddress = new Uri(bpmOptions.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+                client.Timeout = bpmOptions.Timeout;
             });
 
             // 注册 BpmApiClientOptions 配置
             services.AddSingleton(bpmOptions);
 
             // 注册 IBpmApiClient 的 HTTP 实现（单例，内含令牌缓存，线程安全）
-            services.AddSingleton<IBpmApiClient, BpmApiClientImpl>();
+            // 通过 IHttpClientFactory 创建底层 HttpClient，确保 handler 生命周期由框架管理
+            services.AddSingleton<IBpmApiClient>(sp =>
+            {
+                var factory = sp.GetRequiredService<IHttpClientFactory>();
+                return new BpmApiClientImpl(factory.CreateClient("bpm"), bpmOptions);
+            });
 
             // 注册 MVC（兼容 ASP.NET Core 2.2）
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);

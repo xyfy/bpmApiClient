@@ -55,7 +55,13 @@ namespace BpmApiClient
         /// <param name="taskId">环节 ID（与 wfId 至少填一个）</param>
         /// <param name="user">当前操作人账号</param>
         /// <param name="increment">增量更新模式：0=替换（默认），1=增量</param>
-        /// <param name="attachments">附件字典：key=组件标识（或 "def#rowInd#fileName"），value=(文件流, 文件名)</param>
+        /// <param name="attachments">
+        /// 附件字典：key=组件标识（或 "def#rowInd#fileName"），value=(文件流, 文件名)。
+        /// <br/>
+        /// <b>注意：</b>调用此方法后，字典中的每个文件流将被封装进 multipart 请求体并随请求发送；
+        /// 底层 <see cref="System.Net.Http.MultipartFormDataContent"/> 释放时会同时释放这些流。
+        /// 调用方无需再次 Dispose 这些流，但也不应在调用后继续使用它们。
+        /// </param>
         Task<IList<object>> UploadFileAsync(
             string wfId,
             string taskId,

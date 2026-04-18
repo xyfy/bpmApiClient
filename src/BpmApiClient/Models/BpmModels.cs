@@ -484,7 +484,11 @@ namespace BpmApiClient.Models
     // 2.9 流程环节回滚（/process/rollback）
     // ============================================================
 
-    /// <summary>流程撤回请求体（query string 参数）。</summary>
+    /// <summary>
+    /// 流程撤回请求体。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class WorkflowBackoffRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
@@ -509,7 +513,11 @@ namespace BpmApiClient.Models
     // 2.8 流程取消（/maintain/cancelwf）
     // ============================================================
 
-    /// <summary>流程取消请求（query string 参数）。</summary>
+    /// <summary>
+    /// 流程取消请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class CancelWfRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
@@ -523,7 +531,11 @@ namespace BpmApiClient.Models
     // 2.10 获取办理锁 / 2.11 释放办理锁（/process/try-lock、release-lock）
     // ============================================================
 
-    /// <summary>获取/释放办理锁请求（query string 参数）。</summary>
+    /// <summary>
+    /// 获取/释放办理锁请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class ProcessLockRequest
     {
         /// <summary>环节 ID（必填）。</summary>
@@ -794,7 +806,11 @@ namespace BpmApiClient.Models
     // 4 运维接口 请求体
     // ============================================================
 
-    /// <summary>变更流程状态请求（query string 参数）。</summary>
+    /// <summary>
+    /// 变更流程状态请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class ChangeWfStatusRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
@@ -809,7 +825,11 @@ namespace BpmApiClient.Models
         public string OpUser { get; set; }
     }
 
-    /// <summary>变更环节（人员）办理状态请求（query string 参数）。</summary>
+    /// <summary>
+    /// 变更环节（人员）办理状态请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class ChangeTaskStatusRequest
     {
         /// <summary>环节 ID（必填）。</summary>
@@ -824,7 +844,11 @@ namespace BpmApiClient.Models
         public string OpUser { get; set; }
     }
 
-    /// <summary>变更环节（节点）状态请求（query string 参数）。</summary>
+    /// <summary>
+    /// 变更环节（节点）状态请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class ChangeLevelStatusRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
@@ -845,7 +869,11 @@ namespace BpmApiClient.Models
         public string OpUser { get; set; }
     }
 
-    /// <summary>变更环节（节点）办理人请求（query string 参数）。</summary>
+    /// <summary>
+    /// 变更环节（节点）办理人请求。
+    /// 在 BPM 客户端中各字段以 query string 形式发送至 BPM 后端；
+    /// 在 BpmApiHost 中作为 JSON 请求体（<c>[FromBody]</c>）接收。
+    /// </summary>
     public class TaskChangeAssigneeRequest
     {
         /// <summary>环节 ID（必填）。</summary>

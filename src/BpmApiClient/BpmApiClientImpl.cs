@@ -113,9 +113,12 @@ namespace BpmApiClient
                     if (body.TrimStart().StartsWith("{", StringComparison.Ordinal))
                     {
                         var tokenResult = JsonConvert.DeserializeObject<TokenResult>(body);
-                        newToken = tokenResult?.AccessToken ?? body;
+                        if (string.IsNullOrWhiteSpace(tokenResult?.AccessToken))
+                            throw new InvalidOperationException(
+                                $"令牌接口返回了 JSON，但其中缺少 access_token 字段。响应体：{body}");
+                        newToken = tokenResult.AccessToken;
                         // expiresIn 单位：秒；提前 60 秒刷新，并保证至少还有 30 秒有效期
-                        int expiresIn = tokenResult?.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
+                        int expiresIn = tokenResult.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
                         newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 30));
                     }
                     else
@@ -900,16 +903,16 @@ namespace BpmApiClient
         /// <summary>校验撤回/回滚请求的必填字段。</summary>
         private static void ValidateBackoffRequest(WorkflowBackoffRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。");
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。");
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。");
+            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
         }
 
         /// <summary>校验加锁/解锁请求的必填字段。</summary>
         private static void ValidateLockRequest(ProcessLockRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。");
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。");
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
         }
     }
 
