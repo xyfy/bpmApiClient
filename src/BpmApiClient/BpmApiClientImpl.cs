@@ -79,7 +79,7 @@ namespace BpmApiClient
             _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
-                throw new ArgumentException("BpmApiClientOptions.BaseUrl 不能为空。", nameof(options));
+                throw new ArgumentException("BpmApiClientOptions.BaseUrl 不能为空。", nameof(options.BaseUrl));
 
             ValidateCredentialOptions(_options);
 
@@ -161,9 +161,9 @@ namespace BpmApiClient
                             throw new InvalidOperationException(
                                 $"令牌接口返回了 JSON，但其中缺少 access_token 字段。响应体：{body}");
                         newToken = tokenResult.AccessToken;
-                        // expiresIn 单位：秒；提前 60 秒刷新，并保证至少还有 30 秒有效期
+                        // expiresIn 单位：秒；提前 60 秒刷新，最小为 0（立即视为过期并强制下次重新获取）
                         int expiresIn = tokenResult.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
-                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 30));
+                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 0));
                     }
                     else
                     {

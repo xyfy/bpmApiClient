@@ -100,17 +100,34 @@ namespace BpmApiHost.Controllers
                 !mediaType.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase))
                 return StatusCode(415, "Content-Type 必须为 multipart/form-data。");
 
+            // 缺少 boundary 参数时 Request.Form 解析会抛出异常，提前返回 415
+            var boundaryParam = mediaType.Parameters
+                .FirstOrDefault(p => p.Name.Equals("boundary", StringComparison.OrdinalIgnoreCase));
+            if (boundaryParam == null || string.IsNullOrEmpty(boundaryParam.Value))
+                return StatusCode(415, "multipart/form-data 请求缺少 boundary 参数。");
+
             // 先校验参数，再打开流，避免已打开的流因参数校验失败而泄漏
             if (string.IsNullOrWhiteSpace(wfId) && string.IsNullOrWhiteSpace(taskId))
                 return BadRequest("wfId 和 taskId 至少填一个。");
 
-            if (!Request.Form.Files.Any())
+            // 读取表单；捕获格式错误的 multipart 请求（如截断或损坏的 boundary），转为 415
+            Microsoft.AspNetCore.Http.IFormFileCollection formFiles;
+            try
+            {
+                formFiles = Request.Form.Files;
+            }
+            catch (InvalidDataException)
+            {
+                return StatusCode(415, "multipart/form-data 请求格式错误，无法解析表单。");
+            }
+
+            if (!formFiles.Any())
                 return BadRequest("至少需要上传一个文件。");
 
             var attachments = new Dictionary<string, (Stream, string)>();
             try
             {
-                foreach (var file in Request.Form.Files)
+                foreach (var file in formFiles)
                 {
                     if (attachments.ContainsKey(file.Name))
                         return BadRequest($"存在重复的文件字段名：{file.Name}，请确保每个文件使用唯一的字段名。");
