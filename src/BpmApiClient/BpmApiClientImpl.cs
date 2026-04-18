@@ -161,9 +161,9 @@ namespace BpmApiClient
                             throw new InvalidOperationException(
                                 $"令牌接口返回了 JSON，但其中缺少 access_token 字段。响应体：{body}");
                         newToken = tokenResult.AccessToken;
-                        // expiresIn 单位：秒；提前 60 秒刷新，最小为 0（立即视为过期并强制下次重新获取）
+                        // expiresIn 单位：秒；提前 60 秒刷新，至少保留 30 秒缓存以避免过度刷新
                         int expiresIn = tokenResult.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
-                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 0));
+                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 30));
                     }
                     else
                     {
@@ -198,8 +198,8 @@ namespace BpmApiClient
         public Task<InitProcessResult> InitProcessAsync(InitProcessRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.WfDef)) throw new ArgumentException("WfDef 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.InitUser)) throw new ArgumentException("InitUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.WfDef)) throw new ArgumentException("WfDef 不能为空。", nameof(request.WfDef));
+            if (string.IsNullOrWhiteSpace(request.InitUser)) throw new ArgumentException("InitUser 不能为空。", nameof(request.InitUser));
 
             return PostJsonAsync<InitProcessRequest, InitProcessResult>(
                 "web-service/bpm/v95/process/init", request, cancellationToken);
@@ -216,8 +216,8 @@ namespace BpmApiClient
         public Task<ForwardProcessResult> ForwardProcessAsync(ForwardProcessRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request.TaskId));
+            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request.AsnUser));
 
             return PostJsonAsync<ForwardProcessRequest, ForwardProcessResult>(
                 "web-service/bpm/v95/process/forward", request, cancellationToken);
@@ -356,8 +356,8 @@ namespace BpmApiClient
         public async Task CancelWfAsync(CancelWfRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request.WfId));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request.OpUser));
 
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
             var url = $"web-service/bpm/v95/maintain/cancelwf?eco-oauth2-token={Uri.EscapeDataString(token)}" +
@@ -813,10 +813,10 @@ namespace BpmApiClient
         public async Task ChangeLevelStatusAsync(ChangeLevelStatusRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request.WfId));
             if (request.TaskLevel == null && string.IsNullOrWhiteSpace(request.TaskDef))
-                throw new ArgumentException("TaskLevel 和 TaskDef 至少填一个。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+                throw new ArgumentException("TaskLevel 和 TaskDef 至少填一个。", nameof(request.TaskLevel));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request.OpUser));
 
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
             var url = $"web-service/bpm/v95/maintain/change-levelstatus?eco-oauth2-token={Uri.EscapeDataString(token)}" +
