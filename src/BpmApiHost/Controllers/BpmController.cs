@@ -90,7 +90,9 @@ namespace BpmApiHost.Controllers
             [FromQuery] int increment = 0)
         {
             // 检查 Content-Type 是否为 multipart/form-data，避免框架解析表单时抛出 500
-            if (!Request.HasFormContentType)
+            // HasFormContentType 对 application/x-www-form-urlencoded 也返回 true，故显式校验 multipart/
+            if (Request.ContentType == null ||
+                !Request.ContentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
                 return StatusCode(415, "Content-Type 必须为 multipart/form-data。");
 
             // 先校验参数，再打开流，避免已打开的流因参数校验失败而泄漏
