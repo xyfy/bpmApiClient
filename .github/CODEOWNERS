@@ -1,0 +1,18 @@
+# 代码所有者配置
+# 格式：路径模式  @用户名 或 @组织/团队
+# 匹配到的文件变更时，对应所有者会被自动加为 PR 审核人
+
+# 默认所有者：覆盖整个仓库
+*                       @xyfy
+
+# BPM 客户端核心逻辑
+src/BpmApiClient/       @xyfy
+
+# 宿主应用
+src/BpmApiHost/         @xyfy
+
+# 单元测试
+tests/                  @xyfy
+
+# 文档
+docs/                   @xyfy
