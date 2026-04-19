@@ -9,6 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.32" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\BpmApiHost\Controllers\BpmController.cs" Link="Controllers\BpmController.cs" />
     <Compile Include="..\BpmApiHost\HostShared\BpmHostServiceCollectionExtensions.cs" Link="HostShared\BpmHostServiceCollectionExtensions.cs" />
   </ItemGroup>
