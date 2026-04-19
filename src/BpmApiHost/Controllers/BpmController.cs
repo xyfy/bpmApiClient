@@ -125,22 +125,23 @@ namespace BpmApiHost.Controllers
                 return BadRequest("至少需要上传一个文件。");
 
             var attachments = new Dictionary<string, (Stream, string)>();
-            foreach (var file in formFiles)
+            try
             {
-                if (attachments.ContainsKey(file.Name))
+                foreach (var file in formFiles)
                 {
-                    // 释放已打开的流，避免资源泄漏
-                    foreach (var (stream, _) in attachments.Values)
-                        stream?.Dispose();
-                    return BadRequest($"存在重复的文件字段名：{file.Name}，请确保每个文件使用唯一的字段名。");
+                    if (attachments.ContainsKey(file.Name))
+                        return BadRequest($"存在重复的文件字段名：{file.Name}，请确保每个文件使用唯一的字段名。");
+                    attachments[file.Name] = (file.OpenReadStream(), file.FileName);
                 }
-                attachments[file.Name] = (file.OpenReadStream(), file.FileName);
-            }
 
-            // 注意：UploadFileAsync 内部通过 MultipartFormDataContent 接管并释放传入的 Stream，
-            // 此处无需在 finally 中重复 Dispose（IFormFile 流由 ASP.NET Core 请求管道负责清理）。
-            var result = await _bpmClient.UploadFileAsync(wfId, taskId, user, increment, attachments);
-            return Ok(result);
+                var result = await _bpmClient.UploadFileAsync(wfId, taskId, user, increment, attachments);
+                return Ok(result);
+            }
+            finally
+            {
+                foreach (var (stream, _) in attachments.Values)
+                    stream?.Dispose();
+            }
         }
 
         // ============================================================
