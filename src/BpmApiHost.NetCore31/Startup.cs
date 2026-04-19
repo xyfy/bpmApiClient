@@ -1,54 +1,41 @@
 using System.Net;
+using BpmApiHost.HostShared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using BpmApiHost.HostShared;
+using Microsoft.Extensions.Hosting;
 
-namespace BpmApiHost
+namespace BpmApiHost.NetCore31
 {
     /// <summary>
-    /// ASP.NET Core 2.2 应用程序启动配置。
-    /// 注册 BPM API 客户端、MVC 服务及基础中间件。
+    /// ASP.NET Core 3.1 应用程序启动配置。
+    /// 与 2.2 版本共享服务注册，仅保留宿主管道差异（Routing/Endpoints）。
     /// </summary>
     public class Startup
     {
-        /// <summary>应用配置（来自 appsettings.json）。</summary>
         private readonly IConfiguration _configuration;
 
-        /// <summary>初始化 Startup，注入配置对象。</summary>
         public Startup(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        /// <summary>
-        /// 配置依赖注入容器。
-        /// 此方法由运行时调用，用于向容器添加服务。
-        /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddBpmHostCoreServices(_configuration);
-            // 注册 MVC（兼容 ASP.NET Core 2.2）
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddControllers();
         }
 
-        /// <summary>
-        /// 配置 HTTP 请求处理管道中间件。
-        /// 此方法由运行时调用，用于配置中间件流水线。
-        /// </summary>
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
-                // 开发环境：显示详细异常页
                 app.UseDeveloperExceptionPage();
             }
             else
             {
-                // 生产环境：统一异常处理，返回 500 错误
                 app.UseExceptionHandler(errorApp =>
                 {
                     errorApp.Run(async context =>
@@ -60,17 +47,15 @@ namespace BpmApiHost
                 });
             }
 
-            // HTTPS 重定向仅在非开发环境启用（开发环境仅配置了 http，重定向会导致接口不可访问）
             if (!env.IsDevelopment())
             {
                 app.UseHttpsRedirection();
             }
 
-            // 启用认证中间件（在 MVC 之前，使 [Authorize] 能正确验证 JWT 令牌）
+            app.UseRouting();
             app.UseAuthentication();
-
-            // 启用 MVC 路由
-            app.UseMvc();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

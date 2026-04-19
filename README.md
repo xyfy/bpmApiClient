@@ -24,22 +24,23 @@
 | 项目 | 框架 | 说明 |
 |---|---|---|
 | `BpmApiClient` | .NET Standard 2.0 | BPM REST API 客户端类库，封装所有接口的 HTTP 调用 |
-| `BpmApiHost` | .NET Core 2.2 | Web API 宿主程序，对外代理 BPM 接口 |
+| `BpmApiHost` | .NET Core 2.2 | Web API 宿主程序（2.2 实现），对外代理 BPM 接口 |
+| `BpmApiHost.NetCore31` | .NET Core 3.1 | Web API 宿主程序（3.1 实现），接口行为与 2.2 保持一致 |
 
 > ⚠️ **SDK 前置条件（Host 项目）**
 >
-> `BpmApiHost` 目标框架为 `netcoreapp2.2`，**必须使用能够 target .NET Core 2.2 的旧版 .NET SDK（如 2.2.x / 3.1.x）才能编译**。  
-> .NET 5+ / .NET 6+ / .NET 8+ SDK 已移除对 netcoreapp2.2 的支持，直接执行 `dotnet build BpmApiHost.csproj` 或对整个 Solution 执行 `dotnet build` 时会报错：  
-> `error NETSDK1045: The current .NET SDK does not support targeting .NET Core 2.2.`
+> - `BpmApiHost` 目标框架为 `netcoreapp2.2`，需要可 target 2.2 的旧版 SDK（2.2.x / 3.1.x）。
+> - `BpmApiHost.NetCore31` 目标框架为 `netcoreapp3.1`，可使用 3.1 SDK 构建。
+> - .NET 5+ / .NET 6+ / .NET 8+ SDK 不能直接构建上述 Host 项目。
 >
 > **推荐做法：**
-> - 仅需使用客户端类库（`BpmApiClient`）时，直接以现代 SDK（.NET 6+）引用 `BpmApiClient.csproj` 即可，无需构建 Host。
-> - 需要构建/运行 Host 时，请安装 [.NET Core 2.2 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/2.2) 或 .NET Core 3.1 SDK，并在仓库根目录添加 `global.json` 固定 SDK 版本。
-> - CI 流水线仅构建 `BpmApiClient`（netstandard2.0）和 `BpmApiClient.Tests`（net8.0），不包含 Host 项目。
+> - 仅需客户端类库（`BpmApiClient`）时，直接以现代 SDK（.NET 6+）引用 `BpmApiClient.csproj`。
+> - 需要构建/运行 Host 时，优先使用 `BpmApiHost.NetCore31`（`netcoreapp3.1`），并通过 `global.json` 固定 SDK。
+> - CI 仅构建 `BpmApiClient`（netstandard2.0）和 `BpmApiClient.Tests`（net8.0），不包含 Host 项目。
 
 **调用链路：**
 ```
-业务系统 → BpmApiHost (ASP.NET Core 2.2) → BpmApiClientImpl → BPM v95 服务器
+业务系统 → BpmApiHost/BpmApiHost.NetCore31 → BpmApiClientImpl → BPM v95 服务器
 ```
 
 **认证方式：**  
