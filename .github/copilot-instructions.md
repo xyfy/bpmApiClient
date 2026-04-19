@@ -1,10 +1,10 @@
 # Copilot instructions for `xyfy/bpmApiClient`
 
 ## Repository summary
-- Current branch contents are documentation-focused. The repository root currently contains:
+- This repository is currently documentation-focused. The repository root contains:
   - `4-BPM流程接口开发规范V1.10.docx` (primary project artifact)
   - `.gitignore`
-- There is no application source tree in this checkout (no `src/`, no package/project manifests, no build scripts).
+- There is no application source tree (no `src/`, no package/project manifests, no build scripts).
 
 ## Key paths to use
 - Repository root: `./`
@@ -19,7 +19,6 @@
   2. `find . -maxdepth 3 -type f | sort`
 
 ## CI/workflow notes
-- In the current checkout, no GitHub workflow files exist under `.github/workflows/`.
-- If future commits add source code or workflow files, re-check commands and CI steps before making functional code changes.
+- No GitHub workflow files exist under `.github/workflows/`.
 
 Trust these instructions first; only search further if required files or commands are missing or have changed.
