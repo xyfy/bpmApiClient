@@ -17,7 +17,7 @@
 - Verified there are no script/config files for common toolchains in this checkout (no `package.json`, `pyproject.toml`, `pom.xml`, `build.gradle`, `.csproj`, `Makefile`, or `.github/workflows/*`).
 - For validation in this repository state, use:
   1. `git --no-pager status --short`
-  2. `find . -maxdepth 3 -type f | sort`
+  2. `git ls-files`
 
 ## CI/workflow notes
 - No GitHub workflow files are present under `.github/workflows/` in this branch.
