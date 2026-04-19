@@ -159,6 +159,35 @@ namespace BpmApiClient.Tests
             Assert.Equal("json_format_token", token);
         }
 
+        /// <summary>
+        /// 验证 GetAccessTokenAsync 当 JSON 响应缺少 access_token 字段时，抛出 InvalidOperationException。
+        /// </summary>
+        [Fact]
+        public async Task GetAccessToken_WhenJsonMissingAccessToken_ShouldThrowInvalidOperationException()
+        {
+            // Arrange：JSON 对象不含 access_token 字段
+            var tokenJson = JsonConvert.SerializeObject(new { token_type = "bearer", expires_in = 1800 });
+            var httpClient = CreateHttpClient(tokenJson);
+            var client = CreateClient(httpClient);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetAccessTokenAsync());
+        }
+
+        /// <summary>
+        /// 验证 GetAccessTokenAsync 当响应体为空白字符串（非 JSON）时，抛出 InvalidOperationException。
+        /// </summary>
+        [Fact]
+        public async Task GetAccessToken_WhenResponseBodyIsWhitespace_ShouldThrowInvalidOperationException()
+        {
+            // Arrange：响应体为空白字符串（非 JSON 对象，直接字符串分支，但 IsNullOrWhiteSpace 为 true）
+            var httpClient = CreateHttpClient("   ");
+            var client = CreateClient(httpClient);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetAccessTokenAsync());
+        }
+
         // -------------------------------------------------------
         // 2.2 启动流程 测试
         // -------------------------------------------------------

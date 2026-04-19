@@ -246,9 +246,8 @@ namespace BpmApiClient
             if (attachments == null || attachments.Count == 0)
                 throw new ArgumentException("attachments 不能为空。", nameof(attachments));
 
-            var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-
             // 构建 multipart/form-data 请求
+            // 注意：GetAccessTokenAsync 放在 using 块内，确保令牌获取失败时 form（及其 StreamContent）也能被释放
             using (var form = new MultipartFormDataContent())
             {
                 // 添加基础字段
@@ -267,6 +266,9 @@ namespace BpmApiClient
                     streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     form.Add(streamContent, kv.Key, kv.Value.FileName);
                 }
+
+                // 获取令牌（在 using 块内：若此处抛出，form.Dispose() 会连带释放所有已加入的 StreamContent/Stream）
+                var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
 
                 // 发送请求
                 var url = $"web-service/bpm/v95/formdata/upload-file?eco-oauth2-token={Uri.EscapeDataString(token)}";
@@ -529,7 +531,7 @@ namespace BpmApiClient
         public Task<object> GetSelfInitListAsync(SelfInitSearchRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.InitUser)) throw new ArgumentException("InitUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.InitUser)) throw new ArgumentException("InitUser 不能为空。", nameof(request.InitUser));
 
             return PostJsonAsync<SelfInitSearchRequest, object>(
                 "web-service/bpm/v95/searchlist/selfinit", request, cancellationToken);
@@ -546,7 +548,7 @@ namespace BpmApiClient
         public Task<object> GetSelfProcessListAsync(SelfProcessSearchRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request.AsnUser));
 
             return PostJsonAsync<SelfProcessSearchRequest, object>(
                 "web-service/bpm/v95/searchlist/selfprocess", request, cancellationToken);
@@ -563,7 +565,7 @@ namespace BpmApiClient
         public Task<object> GetToCcListAsync(ToCcSearchRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request.AsnUser));
 
             return PostJsonAsync<ToCcSearchRequest, object>(
                 "web-service/bpm/v95/searchlist/tocc", request, cancellationToken);
@@ -703,7 +705,7 @@ namespace BpmApiClient
         public async Task DelegateAddAsync(DelegateAddRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.FromUser)) throw new ArgumentException("FromUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.FromUser)) throw new ArgumentException("FromUser 不能为空。", nameof(request.FromUser));
 
             await PostJsonAsync<DelegateAddRequest, object>(
                 "web-service/bpm/v95/trivial/delegate-addasn", request, cancellationToken).ConfigureAwait(false);
@@ -720,8 +722,8 @@ namespace BpmApiClient
         public async Task DelegateInvalidAsync(DelegateInvalidRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.FromUser)) throw new ArgumentException("FromUser 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.ToUser)) throw new ArgumentException("ToUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.FromUser)) throw new ArgumentException("FromUser 不能为空。", nameof(request.FromUser));
+            if (string.IsNullOrWhiteSpace(request.ToUser)) throw new ArgumentException("ToUser 不能为空。", nameof(request.ToUser));
 
             await PostJsonAsync<DelegateInvalidRequest, object>(
                 "web-service/bpm/v95/trivial/delegate-invalidasn", request, cancellationToken).ConfigureAwait(false);
@@ -791,8 +793,8 @@ namespace BpmApiClient
         public async Task ChangeTaskStatusAsync(ChangeTaskStatusRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request.TaskId));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request.OpUser));
 
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
             var url = $"web-service/bpm/v95/maintain/change-taskstatus?eco-oauth2-token={Uri.EscapeDataString(token)}" +
@@ -844,9 +846,9 @@ namespace BpmApiClient
         public async Task TaskChangeAssigneeAsync(TaskChangeAssigneeRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.Assignee)) throw new ArgumentException("Assignee 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request.TaskId));
+            if (string.IsNullOrWhiteSpace(request.Assignee)) throw new ArgumentException("Assignee 不能为空。", nameof(request.Assignee));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request.OpUser));
 
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
             var url = $"web-service/bpm/v95/maintain/task-change-assignee?eco-oauth2-token={Uri.EscapeDataString(token)}" +

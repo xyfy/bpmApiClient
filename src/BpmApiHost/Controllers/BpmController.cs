@@ -128,7 +128,12 @@ namespace BpmApiHost.Controllers
             foreach (var file in formFiles)
             {
                 if (attachments.ContainsKey(file.Name))
+                {
+                    // 释放已打开的流，避免资源泄漏
+                    foreach (var (stream, _) in attachments.Values)
+                        stream?.Dispose();
                     return BadRequest($"存在重复的文件字段名：{file.Name}，请确保每个文件使用唯一的字段名。");
+                }
                 attachments[file.Name] = (file.OpenReadStream(), file.FileName);
             }
 
