@@ -767,8 +767,8 @@ namespace BpmApiClient
         public async Task ChangeWfStatusAsync(ChangeWfStatusRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request));
-            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request.WfId));
+            if (string.IsNullOrWhiteSpace(request.OpUser)) throw new ArgumentException("OpUser 不能为空。", nameof(request.OpUser));
 
             var token = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
             var url = $"web-service/bpm/v95/maintain/change-wfstatus?eco-oauth2-token={Uri.EscapeDataString(token)}" +
