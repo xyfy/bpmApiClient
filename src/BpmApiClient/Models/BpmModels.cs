@@ -492,12 +492,15 @@ namespace BpmApiClient.Models
     public class WorkflowBackoffRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
+        [JsonProperty("wfId")]
         public string WfId { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
 
         /// <summary>撤回到的环节 ID（必填）。</summary>
+        [JsonProperty("taskId")]
         public string TaskId { get; set; }
     }
 
@@ -521,9 +524,11 @@ namespace BpmApiClient.Models
     public class CancelWfRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
+        [JsonProperty("wfId")]
         public string WfId { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 
@@ -540,9 +545,11 @@ namespace BpmApiClient.Models
     public class ProcessLockRequest
     {
         /// <summary>环节 ID（必填）。</summary>
+        [JsonProperty("taskId")]
         public string TaskId { get; set; }
 
         /// <summary>办理人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 
@@ -815,14 +822,17 @@ namespace BpmApiClient.Models
     public class ChangeWfStatusRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
+        [JsonProperty("wfId")]
         public string WfId { get; set; }
 
         /// <summary>
         /// 目标状态（必填）：1=进行中，3=已完成，13=异常结束，11=取消。
         /// </summary>
+        [JsonProperty("targetStatus")]
         public int TargetStatus { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 
@@ -834,14 +844,17 @@ namespace BpmApiClient.Models
     public class ChangeTaskStatusRequest
     {
         /// <summary>环节 ID（必填）。</summary>
+        [JsonProperty("taskId")]
         public string TaskId { get; set; }
 
         /// <summary>
         /// 目标状态（必填）：1=待办，3=办理中，6=已完成，-1=未到达，11=已取消。
         /// </summary>
+        [JsonProperty("targetStatus")]
         public int TargetStatus { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 
@@ -853,20 +866,25 @@ namespace BpmApiClient.Models
     public class ChangeLevelStatusRequest
     {
         /// <summary>流程实例 ID（必填）。</summary>
+        [JsonProperty("wfId")]
         public string WfId { get; set; }
 
         /// <summary>
         /// 目标状态（必填）：1=待办，3=办理中，6=已完成，-1=未到达，11=已取消。
         /// </summary>
+        [JsonProperty("targetStatus")]
         public int TargetStatus { get; set; }
 
         /// <summary>环节层级（与 TaskDef 二选一）。</summary>
+        [JsonProperty("taskLevel", NullValueHandling = NullValueHandling.Ignore)]
         public int? TaskLevel { get; set; }
 
         /// <summary>环节标识（与 TaskLevel 二选一）。</summary>
+        [JsonProperty("taskDef", NullValueHandling = NullValueHandling.Ignore)]
         public string TaskDef { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 
@@ -878,12 +896,15 @@ namespace BpmApiClient.Models
     public class TaskChangeAssigneeRequest
     {
         /// <summary>环节 ID（必填）。</summary>
+        [JsonProperty("taskId")]
         public string TaskId { get; set; }
 
         /// <summary>环节办理人账号（必填）。</summary>
+        [JsonProperty("assignee")]
         public string Assignee { get; set; }
 
         /// <summary>操作人账号（必填）。</summary>
+        [JsonProperty("opUser")]
         public string OpUser { get; set; }
     }
 }

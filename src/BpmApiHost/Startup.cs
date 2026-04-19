@@ -73,13 +73,25 @@ namespace BpmApiHost
             // 注册 MVC（兼容 ASP.NET Core 2.2）
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
+            // 校验 JWT 认证配置，启动时即报明确错误（早于运行时鉴权失败）
+            var jwtAuthority = _configuration["Auth:Authority"];
+            var jwtAudience  = _configuration["Auth:Audience"];
+            if (string.IsNullOrWhiteSpace(jwtAuthority))
+                throw new InvalidOperationException(
+                    "配置项 Auth:Authority 不能为空，请在 appsettings.json 中填写 JWT Authority（如 https://your-idp/）。");
+            if (!Uri.TryCreate(jwtAuthority, UriKind.Absolute, out _))
+                throw new InvalidOperationException(
+                    $"配置项 Auth:Authority 的值 '{jwtAuthority}' 不是合法的绝对 URI，请检查 appsettings.json 中的配置。");
+            if (string.IsNullOrWhiteSpace(jwtAudience))
+                throw new InvalidOperationException(
+                    "配置项 Auth:Audience 不能为空，请在 appsettings.json 中填写 JWT Audience。");
+
             // 注册 JWT Bearer 认证（运维接口受 [Authorize] 保护，需配合认证中间件）
-            // 在 appsettings.json 中配置 Auth:Authority 和 Auth:Audience
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    options.Authority = _configuration["Auth:Authority"];
-                    options.Audience = _configuration["Auth:Audience"];
+                    options.Authority = jwtAuthority;
+                    options.Audience  = jwtAudience;
                 });
 
             // 注册授权服务（运维接口受保护，部署时应配合认证中间件使用）
