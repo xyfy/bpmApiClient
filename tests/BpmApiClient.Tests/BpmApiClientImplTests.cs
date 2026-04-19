@@ -530,6 +530,8 @@ namespace BpmApiClient.Tests
         private static HttpClient CreateSequentialHttpClient(
             params Func<HttpRequestMessage, HttpResponseMessage>[] handlers)
         {
+            if (handlers == null || handlers.Length == 0)
+                throw new ArgumentException("至少提供一个 handler。", nameof(handlers));
             int index = 0;
             var handler = new MockHttpMessageHandler(req =>
             {

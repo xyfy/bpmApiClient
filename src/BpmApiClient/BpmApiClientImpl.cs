@@ -161,9 +161,10 @@ namespace BpmApiClient
                             throw new InvalidOperationException(
                                 $"令牌接口返回了 JSON，但其中缺少 access_token 字段。响应体：{body}");
                         newToken = tokenResult.AccessToken;
-                        // expiresIn 单位：秒；提前 60 秒刷新，至少保留 30 秒缓存以避免过度刷新
+                        // expiresIn 单位：秒；提前 60 秒刷新，至少保留 30 秒缓存以避免过度刷新；
+                        // 同时不得超过服务端声明的有效期，防止短期 token 被延长使用
                         int expiresIn = tokenResult.ExpiresIn > 0 ? tokenResult.ExpiresIn : 1800;
-                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Max(expiresIn - 60, 30));
+                        newExpiresAt = DateTime.UtcNow.AddSeconds(Math.Min(Math.Max(expiresIn - 60, 30), expiresIn));
                     }
                     else
                     {
@@ -442,7 +443,7 @@ namespace BpmApiClient
         public Task<object> TaskLinetestAsync(TaskLinetestRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.TaskId)) throw new ArgumentException("TaskId 不能为空。", nameof(request.TaskId));
 
             return PostJsonAsync<TaskLinetestRequest, object>(
                 "web-service/bpm/v95/trivial/task-linetest", request, cancellationToken);
@@ -478,7 +479,7 @@ namespace BpmApiClient
         public Task<object> GetPendingTasksAsync(PendingTaskSearchRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.AsnUser)) throw new ArgumentException("AsnUser 不能为空。", nameof(request.AsnUser));
 
             return PostJsonAsync<PendingTaskSearchRequest, object>(
                 "web-service/bpm/v95/searchlist/toassign", request, cancellationToken);
@@ -495,7 +496,7 @@ namespace BpmApiClient
         public async Task UpdateFormDataAsync(FormDataUpdateRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.WfId)) throw new ArgumentException("WfId 不能为空。", nameof(request.WfId));
 
             await PostJsonAsync<FormDataUpdateRequest, object>(
                 "web-service/bpm/v95/formdata/update", request, cancellationToken).ConfigureAwait(false);
