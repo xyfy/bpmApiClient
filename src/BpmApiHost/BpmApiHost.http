@@ -1,0 +1,126 @@
+@BpmApiHost_HostAddress = http://localhost:5162
+# 受 [Authorize] 保护的端点需要 JWT；将下方变量替换为实际令牌，或通过其他受信渠道获取。
+@BpmToken = <your-jwt-token-here>
+
+### 1.3 获取令牌（需要 JWT 身份验证）
+GET {{BpmApiHost_HostAddress}}/api/bpm/token
+Accept: application/json
+Authorization: Bearer {{BpmToken}}
+
+### 2.2 启动流程
+POST {{BpmApiHost_HostAddress}}/api/bpm/process/init
+Content-Type: application/json
+
+{
+  "wfDef": "expense-approval",
+  "initUser": "zhangsan",
+  "wfDesc": "费用报销流程",
+  "formData": [
+    { "def": "amount", "val": "1200" }
+  ]
+}
+
+### 2.3 驱动流程（提交）
+POST {{BpmApiHost_HostAddress}}/api/bpm/process/forward
+Content-Type: application/json
+
+{
+  "taskId": "1302218843753979905",
+  "asnUser": "zhangsan",
+  "approveCode": "1",
+  "approveDesc": "同意"
+}
+
+### 2.3 驱动流程（退回）
+POST {{BpmApiHost_HostAddress}}/api/bpm/process/forward
+Content-Type: application/json
+
+{
+  "taskId": "1302218843753979905",
+  "asnUser": "zhangsan",
+  "approveCode": "0",
+  "approveDesc": "退回修改",
+  "backType": 1,
+  "backTasks": "1301006535580729346@1301006538005037057"
+}
+
+### 2.5 获取环节信息
+GET {{BpmApiHost_HostAddress}}/api/bpm/process/task-state?wfId=1301006535580729346&taskDef=TASK1
+Accept: application/json
+
+### 2.6 环节办理申请
+GET {{BpmApiHost_HostAddress}}/api/bpm/process/apply?taskId=1316710554985246722&asnUser=zhangsan
+Accept: application/json
+
+### 2.7 流程撤回（需要 JWT 身份验证）
+POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/workflow-backoff
+Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
+
+{
+  "wfId": "1320204951691436033",
+  "opUser": "zhangsan",
+  "taskId": "1316710554985246722"
+}
+
+### 2.8 流程取消（需要 JWT 身份验证）
+POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/cancelwf
+Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
+
+{
+  "wfId": "1320204951691436033",
+  "opUser": "zhangsan"
+}
+
+### 2.10 获取办理锁
+GET {{BpmApiHost_HostAddress}}/api/bpm/process/try-lock?taskId=1316710554985246722&opUser=zhangsan
+Accept: application/json
+
+### 2.11 释放办理锁
+GET {{BpmApiHost_HostAddress}}/api/bpm/process/release-lock?taskId=1316710554985246722&opUser=zhangsan
+Accept: application/json
+
+### 2.13 获取表单信息
+GET {{BpmApiHost_HostAddress}}/api/bpm/formdata/full-get?wfId=1301006535580729346
+Accept: application/json
+
+### 2.14 获取待办列表
+POST {{BpmApiHost_HostAddress}}/api/bpm/searchlist/toassign
+Content-Type: application/json
+
+{
+  "asnUser": "zhangsan",
+  "page": 1,
+  "rows": 10
+}
+
+### 2.17 我发起的列表
+POST {{BpmApiHost_HostAddress}}/api/bpm/searchlist/selfinit
+Content-Type: application/json
+
+{
+  "initUser": "zhangsan",
+  "page": 1,
+  "rows": 10,
+  "folder": -1
+}
+
+### 2.20 流程实例详情
+GET {{BpmApiHost_HostAddress}}/api/bpm/process/wfdetail?wfId=1301006535580729346
+Accept: application/json
+
+### 3.8 获取类别列表
+GET {{BpmApiHost_HostAddress}}/api/bpm/trivial/groups
+Accept: application/json
+
+### 4.1 变更流程状态（运维，需要 JWT 身份验证）
+POST {{BpmApiHost_HostAddress}}/api/bpm/maintain/change-wfstatus
+Content-Type: application/json
+Authorization: Bearer {{BpmToken}}
+
+{
+  "wfId": "1316710461716508673",
+  "targetStatus": 3,
+  "opUser": "admin"
+}

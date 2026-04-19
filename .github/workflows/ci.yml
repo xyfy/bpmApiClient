@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: 构建并运行单元测试
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+
+    steps:
+      # 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 安装 .NET SDK（类库 netstandard2.0 + 测试 net8.0）
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 还原 NuGet 依赖（只还原类库和测试项目，排除 netcoreapp2.2 的 Host 项目）
+      - name: 还原依赖
+        run: |
+          dotnet restore src/BpmApiClient/BpmApiClient.csproj
+          dotnet restore tests/BpmApiClient.Tests/BpmApiClient.Tests.csproj
+
+      # 构建（Release 模式，只构建兼容 .NET 8 SDK 的项目）
+      - name: 构建解决方案
+        run: |
+          dotnet build src/BpmApiClient/BpmApiClient.csproj --configuration Release --no-restore
+          dotnet build tests/BpmApiClient.Tests/BpmApiClient.Tests.csproj --configuration Release --no-restore
+
+      # 运行单元测试并生成测试报告
+      - name: 运行单元测试
+        run: >
+          dotnet test tests/BpmApiClient.Tests/BpmApiClient.Tests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+
+      # 发布测试报告
+      - name: 发布测试报告
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: 单元测试报告
+          path: ./TestResults/*.trx
+          reporter: dotnet-trx
