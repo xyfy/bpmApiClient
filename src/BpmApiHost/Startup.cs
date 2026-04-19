@@ -1,7 +1,6 @@
 using System;
 using System.Net;
 using System.Net.Http;
-using System.Threading.Tasks;
 using BpmApiClient;
 using BpmApiClient.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
