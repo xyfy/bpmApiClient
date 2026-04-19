@@ -43,6 +43,9 @@ namespace BpmApiHost
             if (string.IsNullOrWhiteSpace(bpmOptions.BaseUrl))
                 throw new InvalidOperationException(
                     "配置项 BpmApiClient:BaseUrl 不能为空，请在 appsettings.json 中填写 BPM 服务地址。");
+            if (!Uri.TryCreate(bpmOptions.BaseUrl, UriKind.Absolute, out _))
+                throw new InvalidOperationException(
+                    $"配置项 BpmApiClient:BaseUrl 的值 '{bpmOptions.BaseUrl}' 不是合法的绝对 URI，请检查 appsettings.json 中的配置。");
             if (string.IsNullOrWhiteSpace(bpmOptions.AppId))
                 throw new InvalidOperationException(
                     "配置项 BpmApiClient:AppId 不能为空，请在 appsettings.json 中填写应用 ID。");

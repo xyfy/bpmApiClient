@@ -80,6 +80,10 @@ namespace BpmApiClient
 
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
                 throw new ArgumentException("BpmApiClientOptions.BaseUrl 不能为空。", nameof(options.BaseUrl));
+            if (!Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out _))
+                throw new ArgumentException(
+                    $"BpmApiClientOptions.BaseUrl 的值 '{_options.BaseUrl}' 不是合法的绝对 URI。",
+                    nameof(options.BaseUrl));
 
             ValidateCredentialOptions(_options);
 
